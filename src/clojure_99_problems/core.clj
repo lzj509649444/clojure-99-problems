@@ -207,7 +207,6 @@
 (defn slice [lst b e]
   (drop (dec b) (take e lst)))
 
-
 ;; P19 (**) Rotate a list N places to the left.
 ;; Examples:
 ;; * (rotate '(a b c d e f g h) 3)
@@ -246,33 +245,57 @@
 (defn my-range [l r]
   (take (- r (dec l)) (iterate inc l)))
 
-
 ;; P23 (**) Extract a given number of randomly selected elements from a list.
 ;; The selected items shall be returned in a list.
 ;; Example:
 ;; * (rnd-select '(a b c d e f g h) 3)
 ;; (E D A)
-
 ;; Hint: Use the built-in random number generator and the result of problem P20.
+(defn rnd-select [lst n]
+  (for [x (range n)]
+    (nth lst (rand (count lst)))))
+
 ;; P24 (*) Lotto: Draw N different random numbers from the set 1..M.
 ;; The selected numbers shall be returned in a list.
 ;; Example:
 ;; * (lotto-select 6 49)
 ;; (23 1 17 33 21 37)
-
 ;; Hint: Combine the solutions of problems P22 and P23.
+(defn lotto-select [x y]
+  (let [lst (range (inc y))]
+    (loop [set #{}]
+      (if (= x (count set)) (seq set)
+          (recur (conj set (nth lst (rand y))))))))
+
 ;; P25 (*) Generate a random permutation of the elements of a list.
 ;; Example:
 ;; * (rnd-permu '(a b c d e f))
 ;; (B A D C E F)
-
 ;; Hint: Use the solution of problem P23.
+(defn rnd-permu
+  ([lst] (rnd-permu lst (count lst)))
+  ([lst n]
+     (when (> n 0)
+       (let [p (rand-int (dec n))]
+         (lazy-cat (list (nth lst p)) (rnd-permu (remove-at lst (inc p)) (dec n)))))))
+
 ;; P26 (**) Generate the combinations of K distinct objects chosen from the N elements of a list
 ;; In how many ways can a committee of 3 be chosen from a group of 12 people? We all know that there are C(12,3) = 220 possibilities (C(N,K) denotes the well-known binomial coefficients). For pure mathematicians, this result may be great. But we want to really generate all the possibilities in a list.
-
 ;; Example:
 ;; * (combination 3 '(a b c d e f))
 ;; ((A B C) (A B D) (A B E) ... )
+(defn perm-helper [e lst n]
+  (cond
+   (> n 1) (for [x lst ]
+             (perm-helper (my-flatten (list e x)) (filter #(not (= x %)) lst) (dec n)))
+   :else (for [x lst]
+           (my-flatten (list e x)))))
+(defn permutation [n lst]
+  (if (> n (count lst)) nil
+      (for [x lst]
+        (perm-helper x (filter #(not (= x %)) lst) (dec n)))))
+
+
 ;; P27 (**) Group the elements of a set into disjoint subsets.
 ;; a) In how many ways can a group of 9 people work in 3 disjoint subgroups of 2, 3 and 4 persons? Write a function that generates all the possibilities and returns them in a list.
 
@@ -293,40 +316,67 @@
 ;; You may find more about this combinatorial problem in a good book on discrete mathematics under the term "multinomial coefficients".
 ;; P28 (**) Sorting a list of lists according to length of sublists
 ;; a) We suppose that a list contains elements that are lists themselves. The objective is to sort the elements of this list according to their length. E.g. short lists first, longer lists later, or vice versa.
-
 ;; Example:
 ;; * (lsort '((a b c) (d e) (f g h) (d e) (i j k l) (m n) (o)))
 ;; ((O) (D E) (D E) (M N) (A B C) (F G H) (I J K L))
+(defn lsort [lst]
+  (sort-by count lst))
 
 ;; b) Again, we suppose that a list contains elements that are lists themselves. But this time the objective is to sort the elements of this list according to their length frequency; i.e., in the default, where sorting is done ascendingly, lists with rare lengths are placed first, others with a more frequent length come later.
-
 ;; Example:
 ;; * (lfsort '((a b c) (d e) (f g h) (d e) (i j k l) (m n) (o)))
 ;; ((i j k l) (o) (a b c) (f g h) (d e) (d e) (m n))
-
 ;; Note that in the above example, the first two lists in the result have length 4 and 1, both lengths appear just once. The third and forth list have length 3 which appears twice (there are two list of this length). And finally, the last three lists have length 2. This is the most frequent length.
 ;; Arithmetic
+(defn lfsort [lst]
+  (let [m (map (fn [x] (count x)) lst)]
+    (map last (sort-by first (map (fn [x] (list (count (filter #(= % (count x)) m)) x)) lst)))))
 
 ;; P31 (**) Determine whether a given integer number is prime.
 ;; Example:
 ;; * (is-prime 7)
 ;; T
+(defn is-prime [n]
+  (cond
+   (= n 1) false
+   (= n 2) true
+   :else (every? (fn [x] (not (zero? (rem n x)))) (range 2 (inc (Math/sqrt n))))))
+
 ;; P32 (**) Determine the greatest common divisor of two positive integer numbers.
 ;; Use Euclid's algorithm.
 ;; Example:
 ;; * (gcd 36 63)
 ;; 9
+(defn gcd-o [x y]
+  (cond
+   (< x y) (gcd-o y x)
+   (= 0 y) x
+   :else (gcd-o y (- x y))))
+
+(defn gcd [a b]
+  (if (zero? b)
+    a
+    (recur b (rem a b))))
+
 ;; P33 (*) Determine whether two positive integer numbers are coprime.
 ;; Two numbers are coprime if their greatest common divisor equals 1.
 ;; Example:
 ;; * (coprime 35 64)
 ;; T
+(defn coprime [x y]
+  (= 1 (gcd x y)))
+
 ;; P34 (**) Calculate Euler's totient function phi(m).
 ;; Euler's so-called totient function phi(m) is defined as the number of positive integers r (1 <= r < m) that are coprime to m.
 ;; Example: m = 10: r = 1,3,7,9; thus phi(m) = 4. Note the special case: phi(1) = 1.
 
 ;; * (totient-phi 10)
 ;; 4
+(defn totient-phi [n]
+  (count (for [x (range n) :when (coprime n x)] x)))
+
+(defn phi [m]
+  (count (filter (partial coprime m) (range m))))
 
 ;; Find out what the value of phi(m) is if m is a prime number. Euler's totient function plays an important role in one of the most widely used public key cryptography methods (RSA). In this exercise you should use the most primitive method to calculate this function (there are smarter ways that we shall discuss later).
 
@@ -335,28 +385,51 @@
 ;; Example:
 ;; * (prime-factors 315)
 ;; (3 3 5 7)
+(defn prime-factors [n]
+  (loop [m 2 x n res []]
+    (cond
+     (= 1 x) (seq res)
+     (zero? (rem x m)) (recur 2 (quot x m) (conj res m))
+     :else (recur (inc m) x res))))
+
 ;; P36 (**) Determine the prime factors of a given positive integer (2).
 ;; Construct a list containing the prime factors and their multiplicity.
 ;; Example:
 ;; * (prime-factors-mult 315)
 ;; ((3 2) (5 1) (7 1))
 ;; Hint: The problem is similar to problem P13.
+(defn prime-factors-mult [n]
+  (let [f (prime-factors n)]
+    (map (fn [x] (list x (count (filter #(= % x) f)))) (seq (set f)))))
 
 ;; P37 (**) Calculate Euler's totient function phi(m) (improved).
 ;; See problem P34 for the definition of Euler's totient function. If the list of the prime factors of a number m is known in the form of problem P36 then the function phi(m) can be efficiently calculated as follows: Let ((p1 m1) (p2 m2) (p3 m3) ...) be the list of prime factors (and their multiplicities) of a given number m. Then phi(m) can be calculated with the following formula:
 ;; phi(m) = (p1 - 1) * p1 ** (m1 - 1) + (p2 - 1) * p2 ** (m2 - 1) + (p3 - 1) * p3 ** (m3 - 1) + ...
-
 ;; Note that a ** b stands for the b'th power of a.
+(defn phi-improved [m]
+  (let [calculate (fn [x] (let [p1 (first x) m1 (last x)] (* (dec p1) (Math/pow p1 (dec m1)))))]
+    (reduce + (map calculate  (prime-factors-mult m)))))
 
 ;; P38 (*) Compare the two methods of calculating Euler's totient function.
 ;; Use the solutions of problems P34 and P37 to compare the algorithms. Take the number of logical inferences as a measure for efficiency. Try to calculate phi(10090) as an example.
 ;; P39 (*) A list of prime numbers.
 ;; Given a range of integers by its lower and upper limit, construct a list of all prime numbers in that range.
+(defn primes [lower upper]
+  (for [x (range lower upper) :when (is-prime x)] x))
+
 ;; P40 (**) Goldbach's conjecture.
 ;; Goldbach's conjecture says that every positive even number greater than 2 is the sum of two prime numbers. Example: 28 = 5 + 23. It is one of the most famous facts in number theory that has not been proved to be correct in the general case. It has been numerically confirmed up to very large numbers (much larger than we can go with our Prolog system). Write a predicate to find the two prime numbers that sum up to a given even integer.
 ;; Example:
 ;; * (goldbach 28)
 ;; (5 23)
+(defn goldbach [n]
+  (let [prs (primes 1 n)]
+    (loop [[f & l] prs]
+      (when (last l)
+        (cond
+         (= (+ f (last l)) n) (list f (last l))
+         (< (+ f (last l)) n) (recur l)
+         (> (+ f (last l)) n) (recur (drop-last l)))))))
 
 ;; P41 (**) A list of Goldbach compositions.
 ;; Given a range of integers by its lower and upper limit, print a list of all even numbers and their Goldbach composition.
@@ -368,6 +441,9 @@
 ;; 16 = 3 + 13
 ;; 18 = 5 + 13
 ;; 20 = 3 + 17
+(defn goldbach-list [lower upper]
+  (filter #(even? (+ (first %) (last %)))
+          (for [x (range lower (inc upper)) :let [res (goldbach x)] :when (not (nil? res))] res)))
 
 ;; In most cases, if an even number is written as the sum of two prime numbers, one of them is very small. Very rarely, the primes are both bigger than say 50. Try to find out how many such cases there are in the range 2..3000.
 
