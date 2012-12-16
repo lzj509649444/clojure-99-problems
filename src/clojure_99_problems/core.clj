@@ -496,15 +496,22 @@
 ;; n = 1: C(1) = ['0','1'].
 ;; n = 2: C(2) = ['00','01','11','10'].
 ;; n = 3: C(3) = ['000','001','011','010',´110´,´111´,´101´,´100´].
-
 ;; Find out the construction rules and write a predicate with the following specification:
-
 ;; % gray(N,C) :- C is the N-bit Gray code
-
 ;; Can you apply the method of "result caching" in order to make the predicate more efficient, when it is to be used repeatedly?
+(defn b-codes [n]
+  (cond
+      (= n 1) (list "0" "1")
+      (> n 1) (mapcat #(list (str % "0") (str % "1")) (gray (dec n)))))
+
+(defn b-codes-t
+  ([n] (gray-t n '("0" "1")))
+  ([n lst]
+     (cond
+      (= n 1) lst
+      (> n 1) (recur (dec n) (mapcat #(list (str % "0") (str % 1)) lst)))))
 ;; P50 (***) Huffman code.
 ;; First of all, consult a good book on discrete mathematics or algorithms for a detailed description of Huffman codes!
-
 ;; We suppose a set of symbols with their frequencies, given as a list of fr(S,F) terms. Example: [fr(a,45),fr(b,13),fr(c,12),fr(d,16),fr(e,9),fr(f,5)]. Our objective is to construct a list hc(S,C) terms, where C is the Huffman code word for the symbol S. In our example, the result could be Hs = [hc(a,'0'), hc(b,'101'), hc(c,'100'), hc(d,'111'), hc(e,'1101'), hc(f,'1100')] [hc(a,'01'),...etc.]. The task shall be performed by the predicate huffman/2 defined as follows:
 
 ;; % huffman(Fs,Hs) :- Hs is the Huffman code table for the frequency table Fs
@@ -528,6 +535,15 @@
 ;; T
 ;; * (istree (a (b nil nil)))
 ;; NIL
+(defn istree [tr]
+  (let [f (fn [x] (and (= 3 (count x)) (not (nil? (first x)))))]
+    (and
+     (f tr)
+     (if (list? (second tr)) (f (second tr))
+         true)
+     (if (list? (last tr)) (f (last tr))
+         true))))
+
 ;; P55 (**) Construct completely balanced binary trees
 ;; In a completely balanced binary tree, the following property holds for every node: The number of nodes in its left subtree and the number of nodes in its right subtree are almost equal, which means their difference is not greater than one.
 
